@@ -1,10 +1,8 @@
 ############# all imports ################
 # datasets
+import numpy as np
 import pandas as pd
 import nfl_data_py as nfl
-import numpy
-# ML Models
-import torch
 
 ##########################################
 
@@ -23,43 +21,40 @@ def appendIndStats(source, target, columnOn, columnsToBeAppended):
     # merged_df = merged_df.drop(columnOn, axis = 1)
     return merged_df
 
-def generateData(inputStats, outputStats, yearRange, position):
+def generateData(inputStats, outputStats, yearRange, position, OmitNoShows=False):
     # import draft data from years specified
     d = nfl.import_draft_picks(yearRange)
     df1 = pd.DataFrame(d)
 
     # decide what input and output stats we want for our model
-    df1 = df1[["pfr_player_id"] + inputStats]
+    df1 = df1[["pfr_player_id", "pick", "pfr_player_name", "position"] + outputStats]
 
     # filter out all rows to only include running backs
-    draft_rbs = df1[df1['position'] == position]
+    drafts = df1[df1['position'] == position]
 
-    #rename column for consistency with combine dataframe later
-    draft_rbs.rename(columns = {"pfr_player_id":"pfr_id"}, inplace = True)
+    # rename column for consistency with combine dataframe later
+    drafts.rename(columns = {"pfr_player_id":"pfr_id"}, inplace = True)
 
-    #remove players who don't have a pfr_id
-    draft_rbs = draft_rbs[draft_rbs['pfr_id'].notna()]
+    # remove players who don't have a pfr_id
+    drafts = drafts[drafts['pfr_id'].notna()]
 
     # import combine data from years specified
     d = nfl.import_combine_data(yearRange, [position])
     df2 = pd.DataFrame(d)
-
+    print(df2.columns)
     # decide what input stats we want from the combine
-    combine_rbs = df2[["pfr_id"] + outputStats]
+    combines = df2[["pfr_id"] + inputStats]
 
     # new dataframe with added stats for each drafted running back
-    rb_stats = appendIndStats(draft_rbs, combine_rbs, "pfr_id", outputStats)
+    pos_stats = appendIndStats(drafts, combines, "pfr_id", inputStats)
     
     # fill all NaNs with zeros
-    rb_stats.fillna(0, inplace=True)
+    pos_stats.fillna(0, inplace=True)
     
     # convert height values from feet-inches to inches
-    rb_stats['ht'] = rb_stats['ht'].apply(heightConversion)
+    pos_stats['ht'] = pos_stats['ht'].apply(heightConversion)
     
-    return rb_stats
-
-inputs = ["pick", "pfr_player_name", "position", "rush_atts", "rush_yards", "rush_tds", "receptions", "rec_yards", "rec_tds", "games"]
-outputs = ["ht", "wt", "forty", "bench", "vertical", "broad_jump"]
-years = [2017]
-rb_stats = generateData(inputs, outputs, years, 'RB')
-print(rb_stats)
+    # omit noshows to combine if option is enabled
+    if OmitNoShows:
+        pos_stats = pos_stats[pos_stats['vertical'] != 0.0]
+    return pos_stats
