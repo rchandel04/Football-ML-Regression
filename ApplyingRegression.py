@@ -2,7 +2,7 @@
 # datasets
 import pandas as pd
 import nfl_data_py as nfl
-from dataScrapping import generateData
+from dataScrapping import generate_data
 import numpy as np
 import matplotlib.pyplot as plt
 # models
@@ -25,7 +25,7 @@ POSITION = 'RB'
 OMITNOSHOWS = True
 
 # generate desired data
-pos_stats = generateData(INPUT_COLUMNS, OUTPUT_COLUMNS, YEARS, POSITION, OMITNOSHOWS)
+pos_stats = generate_data(INPUT_COLUMNS, OUTPUT_COLUMNS, YEARS, POSITION, OMITNOSHOWS)
 print(pos_stats.head)
 
 # split data based on input and target
@@ -39,8 +39,8 @@ inputs = inputs.to(device)
 targets = targets.to(device)
 
 # create dataset and dataloader from tensors
-trainDataset = TensorDataset(inputs, targets)
-trainDataloader = DataLoader(trainDataset, BATCH_SIZE, shuffle=True)
+train_dataset = TensorDataset(inputs, targets)
+train_dataloader = DataLoader(train_dataset, BATCH_SIZE, shuffle=True)
 
 #instantiate model
 model = NonLinearRegressionModel(input_features=7, output_features=2, hidden_units=32).to(device)
@@ -56,7 +56,7 @@ def fit(num_epochs, model, loss_fn, optimizer):
     cur_loss = 0.0
     for epoch in range(num_epochs):
         model.train()
-        for x, y in trainDataloader:
+        for x, y in train_dataloader:
             pred = model(x)
             loss = loss_fn(pred, y)
             loss.backward()
@@ -73,7 +73,7 @@ def fit(num_epochs, model, loss_fn, optimizer):
 fit(num_epochs=50, model=model, loss_fn=loss_fn, optimizer=optimizer)
 
 # define function to plot a specific input to the model against the target and predicted output of the model to observe influence of different inputs
-def plotInputToTarget(input_column, output_data, color, label):
+def plot_input_to_target(input_column, output_data, color, label):
     column_data = pos_stats[input_column]
     column_data = column_data.to_numpy()
     plt.scatter(column_data, output_data, marker='o', s=10, color=color, label=label)
@@ -108,10 +108,9 @@ plt.title('Scatter Plot')
 plt.xlabel('pick')
 plt.ylabel('rush_atts')
 
-plotInputToTarget('ht', x_target, color='blue', label='targets')
-plotInputToTarget('ht', x_predicted, color='green', label='predicted')
+plot_input_to_target('ht', x_target, color='blue', label='targets')
+plot_input_to_target('ht', x_predicted, color='green', label='predicted')
 
 plt.grid(True)
 plt.legend()
 plt.show()
-    
